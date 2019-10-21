@@ -1,0 +1,24 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-MiniRunner.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\MiniRunnerEditor\Development\Engine\SharedPCH.Engine.h.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\Globals.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\HeroCharacter.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MapLoader.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MiniRunnerMap.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MRGameMode.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MiniRunner.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\Globals.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\HeroCharacter.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MapLoader.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MiniRunner.init.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MiniRunnerMap.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\MRGameMode.gen.cpp.obj"
+"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\Default.rc2.res"
+/OUT:"C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\UE4Editor-MiniRunner.lib"
+/INCLUDE:IMPLEMENT_MODULE_MiniRunner

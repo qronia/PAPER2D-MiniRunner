@@ -1,0 +1,2 @@
+C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\Definitions.MiniRunner.h
+C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Source\MiniRunner\MiniRunner.h
