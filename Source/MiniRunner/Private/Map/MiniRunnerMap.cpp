@@ -97,6 +97,7 @@ AMiniRunnerMap::AMiniRunnerMap()
 	}
 	// Blueprint Tile Actor 등록 -> Breakable Block, Moveable Block, Grouped Spike
 	{
+		/* 이 코드는 패키징시 사용이 불가하다.
 		static ConstructorHelpers::FObjectFinder<UBlueprint> BP_BREAKABLE_BLOCK(TEXT("Blueprint'/Game/MiniRunner/Blueprints/Tiles/BreakableBlock.BreakableBlock'"));
 		if (BP_BREAKABLE_BLOCK.Succeeded())
 		{
@@ -113,6 +114,24 @@ AMiniRunnerMap::AMiniRunnerMap()
 		if (BP_GROUPED_SPIKE.Succeeded())
 		{
 			Grouped_Spike = BP_GROUPED_SPIKE.Object->GeneratedClass;
+		}*/
+		static ConstructorHelpers::FObjectFinder<UClass> BP_BREAKABLE_BLOCK(TEXT("Blueprint'/Game/MiniRunner/Blueprints/Tiles/BreakableBlock.BreakableBlock_C'"));
+		if (BP_BREAKABLE_BLOCK.Succeeded())
+		{
+			Block_Breakable = BP_BREAKABLE_BLOCK.Object;
+		}
+
+		static ConstructorHelpers::FObjectFinder<UClass> BP_MOVABLE_BLOCK(TEXT("Blueprint'/Game/MiniRunner/Blueprints/Tiles/MovableBlock.MovableBlock_C'"));
+		if (BP_MOVABLE_BLOCK.Succeeded())
+		{
+			Block_Movable = BP_MOVABLE_BLOCK.Object;
+		}
+
+		static ConstructorHelpers::FObjectFinder<UClass> BP_GROUPED_SPIKE(TEXT("Blueprint'/Game/MiniRunner/Blueprints/Tiles/SpikeGrouped.SpikeGrouped_C'"));
+		if (BP_GROUPED_SPIKE.Succeeded())
+		{
+			Grouped_Spike = BP_GROUPED_SPIKE.Object;
+
 		}
 	}
 

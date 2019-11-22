@@ -79,23 +79,14 @@ bool RankMaster::LoadRanks()
 	if (RankFile == nullptr) return false;
 
 	_Ranks.Empty();
-	try 
+	while (!RankFile->AtEnd())
 	{
-		while (!RankFile->AtEnd())
-		{
-			RankFile->Serialize(&byteLength, sizeof(byteLength));
-			tempMem = (uint8*)FMemory::Malloc(byteLength);
-			RankFile->Serialize(tempMem, byteLength);
-			RankFile->Serialize(&Time, sizeof(Time));
-			_Ranks.Add(FRank(BytesToString(tempMem, byteLength), Time));
-			FMemory::Free(tempMem);
-		}
-	}
-	catch (std::exception e) 
-	{
-		_Ranks.Empty();
-		RankFile->Close();
-		return false; 
+		RankFile->Serialize(&byteLength, sizeof(byteLength));
+		tempMem = (uint8*)FMemory::Malloc(byteLength);
+		RankFile->Serialize(tempMem, byteLength);
+		RankFile->Serialize(&Time, sizeof(Time));
+		_Ranks.Add(FRank(BytesToString(tempMem, byteLength), Time));
+		FMemory::Free(tempMem);
 	}
 
 	RankFile->Close();
