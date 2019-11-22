@@ -3,13 +3,21 @@
 
 #include "MiniRunnerMap.h"
 #include "Paper2D\Classes\PaperSprite.h"
+#include "Paper2D\Classes\PaperFlipbookComponent.h"
 #include "Paper2D\Classes\PaperGroupedSpriteActor.h"
 #include "Paper2D\Classes\PaperGroupedSpriteComponent.h"
 #include "ConstructorHelpers.h"
+#include "Blueprint/UserWidget.h"
+#include "Engine\TextRenderActor.h"
+#include "Components\TextRenderComponent.h"
 
 #include "Globals.h"
 #include "MRKeys.h"
+#include "MRFood.h"
 #include "Tile\MRKeyBlock.h"
+#include "HeroCharacter.h"
+#include "MRGameInstance.h"
+#include "MRGameMode.h"
 
 // Sets default values
 AMiniRunnerMap::AMiniRunnerMap()
@@ -68,11 +76,9 @@ AMiniRunnerMap::AMiniRunnerMap()
 
 	// C++ Script Actor 등록
 	{
-		static ConstructorHelpers::FClassFinder<AActor> CLS_FOOD(TEXT("Class'/Script/MiniRunner.MRFood'"));
-		if (CLS_FOOD.Succeeded())
-		{
-			Item_Food = CLS_FOOD.Class;
-		}
+		// 여기에서는 C++ 클래스를 가져올 수 있는 두가지 방법을 사용하고 있다. 위쪽의 방법이 훨씬 나을 것이다.
+		Item_Food = AMRFood::StaticClass();
+
 		static ConstructorHelpers::FClassFinder<AActor> CLS_KEY(TEXT("Class'/Script/MiniRunner.MRKeys'"));
 		if (CLS_KEY.Succeeded())
 		{
@@ -146,7 +152,6 @@ AMiniRunnerMap::AMiniRunnerMap()
 void AMiniRunnerMap::BeginPlay()
 {
 	Super::BeginPlay();
-
 	SpikesHolder = GetWorld()->SpawnActor<APaperGroupedSpriteActor>(Grouped_Spike, FVector::ZeroVector, FRotator::ZeroRotator);
 }
 
@@ -163,19 +168,16 @@ void AMiniRunnerMap::SetTile(ESpawnTargetDataInfo Target, float PosX, float PosY
 	case ESpawnTargetDataInfo::FaunaLeft:	Group_FaunaLeft		->AddInstance(transform, Fauna_Left);				break;
 	case ESpawnTargetDataInfo::FaunaMiddle:	Group_FaunaMiddle	->AddInstance(transform, Fauna_Middle);				break;
 	case ESpawnTargetDataInfo::FaunaRight:	Group_FaunaRight	->AddInstance(transform, Fauna_Right);				break;
-		
 	case ESpawnTargetDataInfo::Spike:		SpikesHolder->GetRenderComponent()->AddInstance(transform, Spike);		break;
 
-		// Dynamic Actors
+	// Dynamic Actors
 	case ESpawnTargetDataInfo::Movable:		DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Block_Movable, transform, 0});	break;
 	case ESpawnTargetDataInfo::Breakable:	DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Block_Breakable, transform, 0});	break;
 	case ESpawnTargetDataInfo::Food:		DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Item_Food, transform, 0});		break;
-
 	case ESpawnTargetDataInfo::RedKey:		DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Item_Key, transform, (uint8)EMRKeyType::Red});	break;
 	case ESpawnTargetDataInfo::BlueKey:		DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Item_Key, transform, (uint8)EMRKeyType::Blue});	break;
 	case ESpawnTargetDataInfo::GreenKey:	DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Item_Key, transform, (uint8)EMRKeyType::Green});	break;
 	case ESpawnTargetDataInfo::MasterKey:	DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Item_Key, transform, (uint8)EMRKeyType::Master});	break;
-
 	default: case ESpawnTargetDataInfo::None: break;
 	}
 }
@@ -185,7 +187,20 @@ void AMiniRunnerMap::SetTile(FString Name, FString Type, int32 Width, int32 Heig
 {
 	FTransform transform = FTransform{ FVector{ (float)(x+(Width/2)) , 0.f, -(float)(y+(Height/2)) } };
 
-	if (Type.Equals(TEXT("player")))
+	if (Type.Equals(TEXT("text")))
+	{
+		ATextRenderActor* NewTextActor = Cast<ATextRenderActor>(GetWorld()->SpawnActor(ATextRenderActor::StaticClass(), &transform));
+		if (NewTextActor == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("AMiniRunnerMap::SetTile() - TextActor spawn FAILED."));
+			return;
+		}
+
+		NewTextActor->GetTextRender()->SetText(Name);
+		NewTextActor->AddActorWorldRotation(FRotator(0.f, 90.f, 0.f));
+		return;
+	}
+	else if (Type.Equals(TEXT("player")))
 	{
 		DynamicActorsPositions.Add(TTuple<UClass*, FTransform, uint8>{Class_Hero, transform, 0});
 		return;
@@ -206,9 +221,10 @@ void AMiniRunnerMap::SetTile(FString Name, FString Type, int32 Width, int32 Heig
 	}
 }
 
-void AMiniRunnerMap::Reload()
+void AMiniRunnerMap::Reload(AHeroCharacter*& out)
 {
 	AActor* Spawned;
+
 	for (const auto& Target : DynamicActors)
 	{
 		if (IsValid(Target))
@@ -234,6 +250,10 @@ void AMiniRunnerMap::Reload()
 		{
 			AMRKeyBlock* KeyBlock = Cast<AMRKeyBlock>(Spawned);
 			KeyBlock->Init((EMRKeyType)TargetInfo.Get<2>());
+		}
+		else if (TargetInfo.Get<0>() == Class_Hero)
+		{
+			out = Cast<AHeroCharacter>(Spawned);
 		}
 	}
 }

@@ -47,15 +47,14 @@ private:
 public:	
 	class AMiniRunnerMap* CreatedMap;
 
+
+
 private:
 	void MappingHelper(EDataType Type, TMap<int32, ESpawnTargetDataInfo>& TargetDB, int32 firstgid);
-
-protected:
-	virtual void BeginPlay() override;	
 	
 public:
 	AMapLoader();
 	bool LoadMap(FString JsonPath);
 	UFUNCTION(BlueprintCallable)
-	void ReloadMap();
+	void ReloadMap(class AHeroCharacter*& out);
 };

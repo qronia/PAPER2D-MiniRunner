@@ -10,6 +10,7 @@
 
 #include "Globals.h"
 #include "HeroCharacter.h"
+#include "MRController.h"
 
 // Sets default values
 AMRKeyBlock::AMRKeyBlock()
@@ -47,7 +48,11 @@ AMRKeyBlock::AMRKeyBlock()
 void AMRKeyBlock::OnComponentBeginHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector Impulse, const FHitResult& Hit)
 {
 	AHeroCharacter* Hero = Cast<AHeroCharacter>(OtherActor);
+	AMRController* Player;
 	if (Hero == nullptr) return;
+
+	Player = Cast<AMRController>(Hero->GetController<AMRController>());
+	if (Player == nullptr) return;
 
 	int32* Wanted = nullptr;
 	switch (NeedKeyType)
@@ -62,12 +67,14 @@ void AMRKeyBlock::OnComponentBeginHit(UPrimitiveComponent* HitComp, AActor* Othe
 	if (Wanted != nullptr && *Wanted > 0)
 	{
 		--(*Wanted);
+		Player->Hud_KeyUpdate();
 		Destroy(); return;
 	}
 
 	if (Hero->KeyInventory.MasterKey > 0)
 	{
 		--(Hero->KeyInventory.MasterKey);
+		Player->Hud_KeyUpdate();
 		Destroy(); return;
 	}
 }
@@ -76,7 +83,6 @@ void AMRKeyBlock::OnComponentBeginHit(UPrimitiveComponent* HitComp, AActor* Othe
 void AMRKeyBlock::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Init을 두번 호출하지 않도록 한다. 여기서 Transform 변경이 일어난다.

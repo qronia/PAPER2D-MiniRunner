@@ -1,3 +1,0 @@
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Source\MiniRunner\MiniRunner.Build.cs
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Source\MiniRunner.Target.cs
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Source\MiniRunnerEditor.Target.cs

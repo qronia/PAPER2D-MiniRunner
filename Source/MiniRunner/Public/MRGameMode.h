@@ -18,9 +18,21 @@ public:
 	UPROPERTY(Transient)
 	int FullFoodAmount;
 
+private:
+	class AMapLoader* MapLoader;
+
 public:
 	AMRGameMode();
+	virtual void BeginPlay() override;
+	virtual void Reset() override;
+
+	virtual bool SetPause(APlayerController* PC, FCanUnpause CanUnpauseDelegate = FCanUnpause()) override;
+	virtual bool ClearPause() override;
+
 	bool OnGetFoodEvent();
 	void SetFoodAmount(int Amount);
 	void ResetFoodAmount();
+
+	UFUNCTION(BlueprintCallable)
+	void RankingUpdateAndEndGame(FString Name);
 };

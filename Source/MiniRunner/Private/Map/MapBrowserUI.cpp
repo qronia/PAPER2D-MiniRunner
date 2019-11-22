@@ -3,3 +3,7 @@
 
 #include "MapBrowserUI.h"
 
+void UMapBrowserUI::FBrowserDelegateExcute(FBrowserDelegate Target)
+{
+	Target.ExecuteIfBound();
+}

@@ -7,6 +7,7 @@
 #include "Paper2D\Classes\PaperFlipbookComponent.h"
 
 #include "MRGameMode.h"
+#include "HeroCharacter.h"
 
 AMRFood::AMRFood()
 {
@@ -24,8 +25,11 @@ AMRFood::AMRFood()
 
 void AMRFood::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (Cast<AHeroCharacter>(OtherActor) == nullptr) return; // 부딛힌 대상의 적법성 확인
+
 	AMRGameMode* Mode = Cast<AMRGameMode>(GetWorld()->GetAuthGameMode());
 	if (Mode == nullptr) return;
+
 
 	Mode->OnGetFoodEvent();
 	Destroy();

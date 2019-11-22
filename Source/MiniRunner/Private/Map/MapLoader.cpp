@@ -7,37 +7,35 @@
 #include "Paper2D\Classes\PaperGroupedSpriteActor.h"
 #include "Paper2D\Classes\PaperGroupedSpriteComponent.h"
 #include "FileManager.h"
+#include "Kismet\GameplayStatics.h"
 
 #include "Globals.h"
+#include "HeroCharacter.h"
 #include "MiniRunnerMap.h"
+#include "MRGameInstance.h"
+#include "MRGameMode.h"
 
 // Sets default values
 AMapLoader::AMapLoader()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
-}
-
-// Called when the game starts or when spawned
-void AMapLoader::BeginPlay()
-{
-	Super::BeginPlay();
-	FString Path = FPaths::ProjectDir() + TEXT("Maps/test.json");
-
-	//UE_LOG(LogTemp, Error, TEXT("%s"), *Path);
-
-	LoadMap(Path);
-	CreatedMap->Reload();
 }
 
 bool AMapLoader::LoadMap(FString MapPath)
 {
+	AMRGameMode* Mode;
 	TMap<int32, ESpawnTargetDataInfo> TileLinkDB;
 	int32 TileHeight, TileWidth;
 	int32 MapHeight, MapWidth;
+	bool bIsPlayerExist = false;
+	int32 FoodCount = 0;
 
 	FString JsonStrings;
-	if (!FFileHelper::LoadFileToString(JsonStrings, *MapPath)) return false;
+	if (!FFileHelper::LoadFileToString(JsonStrings, *MapPath))
+	{
+		UE_LOG(LogTemp, Error, TEXT("From AMapLoader - Cannot Load Target File."));
+		return false;
+	}
 
 	TSharedPtr<FJsonObject> MainObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonStrings);
@@ -46,16 +44,20 @@ bool AMapLoader::LoadMap(FString MapPath)
 	//					Json Object의 해석 준비 및 ETC
 	/**************************************************************/
 	UE_LOG(LogTemp, Error, TEXT("==== Json Object Parsing Start ===="));
-	if (!FJsonSerializer::Deserialize<>(Reader, MainObject) || !MainObject.IsValid()) return false;
+	if (!FJsonSerializer::Deserialize<>(Reader, MainObject) || !MainObject.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("From AMapLoader - Target is probably NOT JSON."));
+		return false;
+	}
 
 	TileHeight = MainObject->GetIntegerField(TEXT("tileheight")); // Should be 32
 	TileWidth = MainObject->GetIntegerField(TEXT("tilewidth")); // Should be 32
 
-	UE_LOG(LogTemp, Error, TEXT("tile Height, tile Width = %d, %d"), TileHeight, TileWidth);
-
 	if (IsValid(CreatedMap)) CreatedMap->Destroy();
 	CreatedMap = GetWorld()->SpawnActor<AMiniRunnerMap>();
-	TileLinkDB.Add(0, ESpawnTargetDataInfo::None);
+	TileLinkDB.Add(0, ESpawnTargetDataInfo::None); 
+	Mode = Cast<AMRGameMode>(GetWorld()->GetAuthGameMode());
+	if (Mode == nullptr) return false;
 
 	/**************************************************************/
 	//						TileSet 정보
@@ -108,15 +110,11 @@ bool AMapLoader::LoadMap(FString MapPath)
 			MapWidth = layer->GetIntegerField(TEXT("width"));
 			UE_LOG(LogTemp, Warning, TEXT("map Height, map Width = %d, %d"), MapHeight, MapWidth);
 
-			// 이 부분은 현재 임시로서 되어있는 CSV 스타일을 해석한다. 
-			// 이것은 압축이 되어있지 않은 형태로서, 알고리즘 테스트를 위해 임시로 사용하기로 했다.
+			// 이 부분은 CSV 스타일로 저장되어있을 데이터들을 해석한다. 
 			int32 TileNumber, PosX, PosY;
 			PosX = PosY = 0;
 			TArray<TSharedPtr<FJsonValue>> data = layer->GetArrayField(TEXT("data"));
-			/*
-				대충 base64 스타일로 인코딩 되어있는 것을 디코딩하는 작업이 들어가야한다.
-				현재는 CSV 스타일이므로.. 아래를 이용한다.
-			*/
+
 			ESpawnTargetDataInfo* Target;
 			UE_LOG(LogTemp, Warning, TEXT("Layer - Start tile Data Process..."));
 			UE_LOG(LogTemp, Warning, TEXT("Layer - data amount : %d"), data.Num());
@@ -125,7 +123,8 @@ bool AMapLoader::LoadMap(FString MapPath)
 				TileNumber = (int32)tile->AsNumber();
 				Target = TileLinkDB.Find(TileNumber);
 
-				if(Target != nullptr) CreatedMap->SetTile(*Target, (float)(TileWidth * PosX), (float)(TileHeight * PosY));
+				if (Target != nullptr) CreatedMap->SetTile(*Target, (float)(TileWidth * PosX), (float)(TileHeight * PosY));
+				if (*Target == ESpawnTargetDataInfo::Food) ++FoodCount;
 
 				if (++PosX >= MapWidth)
 				{
@@ -155,18 +154,30 @@ bool AMapLoader::LoadMap(FString MapPath)
 				height =	obj->GetIntegerField(TEXT("height"));
 
 				UE_LOG(LogTemp, Error, TEXT("%s, %s, %d, %d, %d, %d"), *Type, *objName, x, y, width, height);
+				if (Type.Equals(TEXT("player")))
+				{
+					// 플레이어의 경우 분기하여 플레이어에 대한 위치지정이 중복되었다면 이 맵은 잘못된 맵이기 때문에 실패를 알린다.
+					if(bIsPlayerExist) return false;
+					else bIsPlayerExist = true;
+				}
 
 				CreatedMap->SetTile(objName, Type, width, height, x, y);
 			}
 		}
 	}
+
+	Mode->SetFoodAmount(FoodCount);
 	return true;
 }
 
-void AMapLoader::ReloadMap()
+void AMapLoader::ReloadMap(AHeroCharacter*& out)
 {
-	if (!IsValid(CreatedMap)) return;
-	CreatedMap->Reload();
+	if (CreatedMap == nullptr || !IsValid(CreatedMap))
+	{
+		out = nullptr;
+		return;
+	}
+	CreatedMap->Reload(out);
 }
 
 void AMapLoader::MappingHelper(EDataType Type, TMap<int32, ESpawnTargetDataInfo>& TargetMapper, int32 firstgid)

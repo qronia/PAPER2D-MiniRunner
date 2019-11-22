@@ -1,5 +1,0 @@
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Development\MiniRunner\Definitions.MiniRunner.h
-C:\Program Files\Epic Games\UE_4.23\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
-C:\Program Files\Epic Games\UE_4.23\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Source\MiniRunner/Private/MiniRunnerMap.h
-C:\Users\qroni\Documents\Unreal Projects\MiniRunner\Intermediate\Build\Win64\UE4Editor\Inc\MiniRunner\MiniRunnerMap.generated.h

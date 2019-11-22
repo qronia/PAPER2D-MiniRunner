@@ -78,3 +78,18 @@ public:
 public:
 	FKeyInventory() : RedKey(0), BlueKey(0), GreenKey(0), MasterKey(0) {};
 };
+
+USTRUCT(BlueprintType, Atomic)
+struct FRank
+{
+	GENERATED_BODY()
+
+public:
+	FRank() = default;
+	FRank(FString Username, int64 Time) : Name(Username), MilliSecondsTime(Time) {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FString Name;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int64 MilliSecondsTime;
+};

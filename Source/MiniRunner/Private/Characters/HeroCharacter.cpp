@@ -7,6 +7,9 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "WidgetComponent.h"
+#include "StaminaBar.h"
+#include "MRGameState.h"
 
 #include "Globals.h"
 
@@ -14,7 +17,9 @@ AHeroCharacter::AHeroCharacter()
 {
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	StaminaBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StaminaBar"));
 
+	StaminaBarComponent->SetupAttachment(RootComponent);
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
 
@@ -24,7 +29,7 @@ AHeroCharacter::AHeroCharacter()
 
 	// 카메라 설정
 	Camera->SetProjectionMode(ECameraProjectionMode::Orthographic);
-	Camera->SetOrthoWidth(768.f);
+	Camera->SetOrthoWidth(768.f); 
 
 	SpringArm->RelativeRotation = FRotator{ 0.f,-90.f,0.f };
 	SpringArm->TargetOffset = FVector{ 0.f, 50.f, 20.f };
@@ -33,8 +38,22 @@ AHeroCharacter::AHeroCharacter()
 	SpringArm->bInheritPitch = false;
 	SpringArm->bInheritYaw = false;
 
+	// HUD 설정
+	StaminaBarComponent->SetWorldRotation( FRotator{ 0.f, 90.f, 0.f });
+	StaminaBarComponent->bAbsoluteRotation = true;
+	StaminaBarComponent->RelativeLocation = FVector{ 0.f, 15.f, 40.f };
+	StaminaBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> WID_STAMINABAR(TEXT("WidgetBlueprint'/Game/MiniRunner/Blueprints/UI/BP_StaminaBar.BP_StaminaBar_C'"));
+	if (WID_STAMINABAR.Succeeded())
+	{
+		StaminaBarComponent->SetWidgetClass(WID_STAMINABAR.Class);
+		StaminaBarComponent->SetDrawSize(FVector2D(60.f, 5.f));
+	}
+
 	// 움직임 관련 설정
-	OriginalWalkSpeed = 220;
+	OriginalWalkSpeed = 160;
+	RunSpeedRatio = 1.8f;
 	WallSlideVelocity = 180;
 
 	GetMovementComponent()->bConstrainToPlane = true;
@@ -85,6 +104,9 @@ AHeroCharacter::AHeroCharacter()
 
 	// ETC
 	State = ECharacterState::IDLE;
+	Stamina = 1.f;
+	bCanRun = true;
+	bIsRunMode = false;
 }
 
 void AHeroCharacter::UpdateCharacter()
@@ -93,7 +115,6 @@ void AHeroCharacter::UpdateCharacter()
 
 	// 방향 설정
 	Speed = GetVelocity().X;
-	// 두번 검사하는 이유는 IDLE의 존재 때문. 이때는 방향이 전환되면 안되기 때문이다.
 	if (Speed < -KINDA_SMALL_NUMBER)
 	{
 		Controller->SetControlRotation(FRotator{ 0.f,180.f,0.f });
@@ -113,10 +134,12 @@ void AHeroCharacter::UpdateCharacter()
 		}
 		else
 		{
-			GetCharacterMovement()->MaxWalkSpeed = OriginalWalkSpeed;
+			GetCharacterMovement()->MaxWalkSpeed = 
+				bIsRunMode? OriginalWalkSpeed * RunSpeedRatio
+				: OriginalWalkSpeed;				
 
-			State = (Speed > OriginalWalkSpeed + 10.f) ? ECharacterState::RUN
-				: (Speed > KINDA_SMALL_NUMBER) ? ECharacterState::WALK
+			State = (Speed > OriginalWalkSpeed + 10.f)? ECharacterState::RUN
+				:(Speed > KINDA_SMALL_NUMBER)? ECharacterState::WALK
 				: ECharacterState::IDLE;
 		}
 	}
@@ -169,6 +192,17 @@ void AHeroCharacter::UpdateAnimation()
 	}
 }
 
+void AHeroCharacter::RunRecovery()
+{
+	bCanRun = true;
+}
+
+void AHeroCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	StaminaBar = Cast<UStaminaBar>(StaminaBarComponent->GetUserWidgetObject());
+}
+
 void AHeroCharacter::CustomJump()
 {
 	if (State == ECharacterState::WALL_SLIDE)
@@ -188,18 +222,15 @@ void AHeroCharacter::Tick(float DeltaSeconds)
 	if (State == ECharacterState::DEATH) return;
 	UpdateCharacter();
 	UpdateAnimation();
+	StaminaProcess(DeltaSeconds);
 }
 
 void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &AHeroCharacter::CustomJump);
-	PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Released, this, &ACharacter::StopJumping);
-/*
-	PlayerInputComponent->BindAction(TEXT("Run"), EInputEvent::IE_Pressed, this, &AHeroCharacter::);
-	PlayerInputComponent->BindAction(TEXT("Run"), EInputEvent::IE_Released, this, &AHeroCharacter::);
-	PlayerInputComponent->BindAction(TEXT("Restart"), EInputEvent::IE_Released, this, &AHeroCharacter::);
-	PlayerInputComponent->BindAction(TEXT("Menu"), EInputEvent::IE_Released, this, &AHeroCharacter::);
-*/
+	PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Released,this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction(TEXT("Run"), EInputEvent::IE_Pressed, this, &AHeroCharacter::RunModeOn);
+	PlayerInputComponent->BindAction(TEXT("Run"), EInputEvent::IE_Released, this, &AHeroCharacter::RunModeOff);
 	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AHeroCharacter::SideMove);
 }
 
@@ -230,14 +261,8 @@ void AHeroCharacter::SideMove(float Value)
 	{
 		if (inAir)
 		{
-			if (Value > KINDA_SMALL_NUMBER)
-			{
-				State = ECharacterState::WALL_SLIDE;
-			}
-			else
-			{
-				State = ECharacterState::FALL;
-			}
+			if (Value > KINDA_SMALL_NUMBER) State = ECharacterState::WALL_SLIDE;
+			else State = ECharacterState::FALL;
 		}
 		else
 		{
@@ -252,18 +277,68 @@ void AHeroCharacter::SideMove(float Value)
 	}
 }
 
+void AHeroCharacter::RunModeOn()
+{
+	if (bCanRun == false) return;
+	bIsRunMode = true;
+}
+
+void AHeroCharacter::RunModeOff()
+{
+	bIsRunMode = false;
+}
+
+void AHeroCharacter::StaminaProcess(float DeltaSeconds)
+{
+	if (!bCanRun) return;
+
+	if (FMath::Abs(GetVelocity().X) > OriginalWalkSpeed + 10.f)
+	{
+		Stamina = FMath::Clamp<float>(Stamina - DeltaSeconds * StaminaConsume_Mult, -KINDA_SMALL_NUMBER, MaxStaminaValue);
+		if (Stamina < KINDA_SMALL_NUMBER)
+		{
+			bCanRun = false;
+			bIsRunMode = false;
+			GetWorld()->GetTimerManager().SetTimer(Stamina_NoRunTimer, this, &AHeroCharacter::RunRecovery, 2.f, false);
+		}
+	}
+	else
+	{
+		Stamina = FMath::Clamp<float>(Stamina + DeltaSeconds * StaminaRecovery_Mult, -KINDA_SMALL_NUMBER, MaxStaminaValue);
+	}
+
+	if (StaminaBar != nullptr)
+	{
+		StaminaBar->ChangePercentage(Stamina / MaxStaminaValue);
+	}
+}
+
 void AHeroCharacter::OnDeath()
 {
+	GetWorld()->GetTimerManager().ClearTimer(Stamina_NoRunTimer);
 	State = ECharacterState::DEATH;
+
 	FVector NewLocation;
 	AAIController* TempAi;
 	APaperCharacter* DeadAnimActor;
+	AMRGameState* MRGameState;
 	APlayerController* Controller = GetController<APlayerController>();
 	if (Controller == nullptr)
 	{
 		Destroy(); 
 		return;
 	}
+
+	MRGameState = GetWorld()->GetGameState<AMRGameState>();
+	if (MRGameState != nullptr)
+	{
+		MRGameState->bIsDead = true;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("MRGameState was nullptr, This World's GameState Must be AMRGameState."));
+	}
+
 	DisableInput(Controller);
 	SetActorHiddenInGame(true);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

@@ -60,27 +60,49 @@ private:
 	// ETC
 	UPROPERTY(VisibleAnywhere, Meta = (AllowPrivateAccess = true))
 	float OriginalWalkSpeed;
+	UPROPERTY(VisibleAnywhere, Meta = (AllowPrivateAccess = true))
+	float RunSpeedRatio;
 	
 	UPROPERTY(VisibleAnywhere, Meta = (AllowPrivateAccess = true))
 	float WallSlideVelocity;
 
 	const float HandPos = 10.f;
-	ECharacterState State;
+	const float StaminaRecovery_Mult = 3.f;
+	const float StaminaConsume_Mult = 7.f;
+	const float MaxStaminaValue = 10.f;
 
-	FTimerHandle DeathTimeHandler;
+	UPROPERTY(VisibleAnywhere, Category = Stat, Meta = (AllowPrivateAccess = true))
+	float Stamina;
+	bool bIsRunMode;
+	bool bCanRun;
+
+	ECharacterState State;
+	FTimerHandle Stamina_NoRunTimer;
 
 public:
+	UPROPERTY(BlueprintReadOnly)
 	FKeyInventory KeyInventory;
+
+	UPROPERTY(EditAnywhere, Meta = (AllowPrivateAccess = true))
+	class UWidgetComponent* StaminaBarComponent;
+	class UStaminaBar* StaminaBar;
 
 private:
 	void UpdateCharacter();
 	void UpdateAnimation();
 
+	UFUNCTION()
+	void RunRecovery();
+
 protected:
+	virtual void BeginPlay() override;
 	virtual void CustomJump();
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void SideMove(float Value);
+	virtual void RunModeOn();
+	virtual void RunModeOff();
+	virtual void StaminaProcess(float DeltaSeconds);
 
 public:
 	AHeroCharacter();

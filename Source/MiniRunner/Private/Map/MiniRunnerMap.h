@@ -86,5 +86,5 @@ public:
 	void SetTile(ESpawnTargetDataInfo Target, float PosX, float PosY);
 	void SetTile(FString Name, FString Type, int32 Width, int32 Height, int32 x, int32 y);
 
-	void Reload();
+	void Reload(class AHeroCharacter*& out);
 };

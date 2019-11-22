@@ -8,6 +8,7 @@
 
 #include "Globals.h"
 #include "HeroCharacter.h"
+#include "MRController.h"
 
 AMRKeys::AMRKeys()
 {
@@ -29,7 +30,10 @@ void AMRKeys::BeginPlay() {}
 void AMRKeys::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AHeroCharacter* Hero = Cast<AHeroCharacter>(OtherActor);
+	AMRController* Player;
 	if (Hero == nullptr) return;
+	Player = Cast<AMRController>(Hero->GetController<AMRController>());
+	if (Player == nullptr) return;
 
 	switch (KeyType)
 	{
@@ -43,6 +47,7 @@ void AMRKeys::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 		break;
 	}
 
+	Player->Hud_KeyUpdate();
 	Destroy();
 }
 
